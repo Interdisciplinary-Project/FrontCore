@@ -1,0 +1,89 @@
+name: escoteiro
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter_svg: ^2.0.0
+  
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  go_router: ^16.2.1
+  get: ^4.7.2
+  url_launcher: ^6.1.10
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.3
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.4
+  image_picker: ^1.1.2
+  mask_text_input_formatter: ^2.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logos/logo-dark.svg
+    - assets/images/imagem-1.jpg
+    - assets/images/imagem-2.jpg
+    - assets/images/imagem-3.jpg
+    - assets/images/imagem-4.jpg
+    - assets/images/imagem-5.jpg
+    - assets/images/imagem-6.jpg
+    - assets/images/imagem-7.jpg
+    - assets/images/imagem-8.jpg
+    - assets/images/imagem-9.jpg
+    - assets/images/imagem-10.jpg
+    - assets/images/imagem-11.jpg
+    - assets/images/imagem-12.jpg
+    - assets/images/imagem-13.jpg
+    - assets/images/imagem-14.jpg
+    - assets/images/imagem-15.jpg
+    - assets/images/imagem-16.jpg
+    - assets/images/imagem-17.jpg
+    - assets/images/imagem-18.jpg
+    - assets/images/imagem-19.jpg
+    - assets/images/imagem-20.jpg
+    - assets/images/imagem-21.jpg
+    - assets/images/imagem-22.jpg
+    - assets/images/imagem-23.jpg
+    - assets/images/imagem-24.jpg
+    - assets/images/imagem-25.jpg
+    - assets/images/imagem-26.jpg
+    - assets/images/imagem-27.jpg
+    - assets/images/imagem-28.jpg
+    - assets/images/imagem-29.jpg
+    - assets/images/imagem-30.jpg
+    - assets/images/imagem-31.jpg
+    - assets/images/imagem-32.jpg
+    - assets/images/imagem-33.jpg
+    - assets/images/imagem-34.jpg
+    - assets/images/imagem-35.jpg
+    - assets/images/imagem-36.jpg
+    - assets/images/imagem-37.jpg
+    - assets/images/imagem-38.jpg
+    - assets/images/imagem-39.jpg
+    - assets/images/imagem-40.jpg
+    - assets/images/imagem-44.jpg
+    - assets/images/imagem-45.jpg
+    - assets/images/imagem-46.jpg
+    - assets/images/imagem-47.jpg
+    - assets/images/imagem-48.jpg
+    - assets/images/imagem-49.jpg
+    - assets/images/imagem-50.jpg
+    - assets/images/imagem-51.jpg
+    - assets/images/imagem-52.jpg
+    - assets/images/imagem-53.jpg
+    - assets/images/imagem-54.jpg
+    - assets/images/imagem-55.jpg
