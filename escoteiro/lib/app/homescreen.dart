@@ -6,6 +6,10 @@ import 'package:escoteiro/app/galleryscreen.dart';
 import 'package:escoteiro/app/eventsscreen.dart';
 import 'package:escoteiro/app/perfilscreen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:escoteiro/models/notice_model.dart';
+import 'package:escoteiro/services/auth_service.dart';
+import 'package:escoteiro/app/add_notice_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -31,7 +35,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       _buildCommunityEventsCards(context),
                       const SizedBox(height: 16),
-                      _buildRecentNotices(),
+                      _buildRecentNotices(context),
                       const SizedBox(height: 16),
                       _buildContactButton(),
                       const SizedBox(height: 80),
@@ -46,6 +50,7 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: _buildBottomNavigation(context),
     );
   }
+
 
   Widget _buildHeader() {
     return Container(
@@ -301,48 +306,86 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentNotices() {
-    final notices = [
-      {
-        'title': 'Reunião Mensal',
-        'description': 'Próxima reunião dia 25 de outubro.',
-        'timeAgo': 'Hoje'
-      },
-      {
-        'title': 'Nova Atividade',
-        'description':
-            'Realizaremos uma nova atividade no dia 17 de setembro, onde será aperfeiçoado as técnicas escoteiras.',
-        'timeAgo': 'Ontem'
-      },
-      {
-        'title': 'Bem-vindo!',
-        'description':
-            'Realizaremos uma nova atividade no dia 17 de setembro, onde será aperfeiçoado as técnicas escoteiras.',
-        'timeAgo': '3 dias atrás'
-      },
-    ];
-
+  Widget _buildRecentNotices(BuildContext context) {
+    final authService = AuthService();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Avisos recentes',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF000000),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Avisos recentes',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF000000),
+              ),
+            ),
+            FutureBuilder<bool>(
+              future: authService.isAdmin(),
+              builder: (context, snapshot) {
+                if (snapshot.data == true) {
+                  return IconButton(
+                    icon: const Icon(Icons.add_circle_outline, color: Color(0xFF059A00)),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AddNoticeScreen()),
+                      );
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ),
         const SizedBox(height: 12),
-        ...notices.map(
-          (n) => Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: _buildNoticeCard(
-              title: n['title'] as String,
-              description: n['description'] as String,
-              timeAgo: n['timeAgo'] as String,
-            ),
-          ),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('notices')
+              .orderBy('createdAt', descending: true)
+              .limit(3)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Text(
+                'Erro ao carregar avisos',
+                style: TextStyle(color: Color(0xFFAFAFAF)),
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF059A00)),
+              );
+            }
+
+            final notices = snapshot.data!.docs;
+
+            if (notices.isEmpty) {
+              return const Text(
+                'Nenhum aviso recente',
+                style: TextStyle(color: Color(0xFFAFAFAF)),
+              );
+            }
+
+            return Column(
+              children: notices.map((doc) {
+                final notice = NoticeModel.fromFirestore(doc);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: _buildNoticeCard(
+                    title: notice.title,
+                    description: notice.description,
+                    timeAgo: notice.getTimeAgo(),
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );

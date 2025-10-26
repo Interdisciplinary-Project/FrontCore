@@ -29,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _cepController = TextEditingController();
   final _bairroController = TextEditingController();
   final _cidadeController = TextEditingController();
+  final _estadoController = TextEditingController();
   final _dataNascimentoController = TextEditingController();
   final _dataIngressaoController = TextEditingController();
   
@@ -61,6 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _cepController.dispose();
     _bairroController.dispose();
     _cidadeController.dispose();
+    _estadoController.dispose();
     _dataNascimentoController.dispose();
     _dataIngressaoController.dispose();
     super.dispose();
@@ -173,9 +175,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'cep': _cepController.text.trim(),
           'bairro': _bairroController.text.trim(),
           'cidade': _cidadeController.text.trim(),
+          'estado': _estadoController.text.trim(),
           'dataNascimento': _dataNascimentoController.text,
           'dataIngressao': _dataIngressaoController.text,
           'ramo': _ramoSelecionado,
+          'role': 'user',
+          'pontos': 0,
           'createdAt': FieldValue.serverTimestamp(),
         });
       } catch (firestoreError) {
@@ -312,7 +317,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               const SizedBox(height: 24),
                               
                               SizedBox(
-                                height: 400,
+                                height: 450,
                                 child: PageView(
                                   controller: _pageController,
                                   physics: const NeverScrollableScrollPhysics(),
@@ -465,12 +470,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               label: 'Nome',
               controller: _nomeController,
               validator: (v) => _validateRequired(v, 'Nome'),
+              allowAccents: true,
             ),
             const SizedBox(height: 16),
             _buildTextField(
               label: 'Sobrenome',
               controller: _sobrenomeController,
               validator: (v) => _validateRequired(v, 'Sobrenome'),
+              allowAccents: true,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -485,18 +492,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
               label: 'Rua',
               controller: _enderecoController,
               validator: (v) => _validateRequired(v, 'Rua'),
+              allowAccents: true,
             ),
             const SizedBox(height: 16),
             _buildTextField(
               label: 'Bairro',
               controller: _bairroController,
               validator: (v) => _validateRequired(v, 'Bairro'),
+              allowAccents: true,
             ),
             const SizedBox(height: 16),
             _buildTextField(
               label: 'Cidade',
               controller: _cidadeController,
               validator: (v) => _validateRequired(v, 'Cidade'),
+              allowAccents: true,
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              label: 'Estado',
+              controller: _estadoController,
+              validator: (v) => _validateRequired(v, 'Estado'),
+              allowAccents: true,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -547,7 +564,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
-                items: ['Lobinho', 'Escoteiro', 'Júnior']
+                items: ['Lobinho', 'Júnior', 'Sênior']
                     .map((ramo) => DropdownMenuItem(
                           value: ramo,
                           child: Text(ramo),
@@ -572,7 +589,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool obscureText = false,
     Widget? suffixIcon,
     List<TextInputFormatter>? inputFormatters,
+    bool allowAccents = false,
   }) {
+    List<TextInputFormatter> formatters = inputFormatters ?? [];
+    if (!allowAccents && 
+        keyboardType != TextInputType.phone && 
+        keyboardType != TextInputType.number && 
+        keyboardType != TextInputType.emailAddress) {
+      formatters.add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s@._-]')));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -589,7 +615,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           validator: validator,
           keyboardType: keyboardType,
           obscureText: obscureText,
-          inputFormatters: inputFormatters,
+          inputFormatters: formatters,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

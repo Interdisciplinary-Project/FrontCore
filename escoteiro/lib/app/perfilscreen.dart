@@ -140,14 +140,19 @@ class PerfilScreen extends StatelessWidget {
 
   String _buildUserDataSubtitle(Map<String, dynamic> userData) {
     final telefone = userData['telefone'] ?? '';
-    final endereco = userData['endereco'] ?? '';
+    final cidade = userData['cidade'] ?? '';
+    final estado = userData['estado'] ?? '';
     
-    if (telefone.isNotEmpty && endereco.isNotEmpty) {
-      return '$telefone • ${endereco.split(',')[0]}';
+    if (telefone.isNotEmpty && cidade.isNotEmpty && estado.isNotEmpty) {
+      return '$telefone • $cidade, $estado';
+    } else if (telefone.isNotEmpty && cidade.isNotEmpty) {
+      return '$telefone • $cidade';
     } else if (telefone.isNotEmpty) {
       return telefone;
-    } else if (endereco.isNotEmpty) {
-      return endereco.split(',')[0];
+    } else if (cidade.isNotEmpty && estado.isNotEmpty) {
+      return '$cidade, $estado';
+    } else if (cidade.isNotEmpty) {
+      return cidade;
     }
     return 'Adicione suas informações';
   }
@@ -205,7 +210,7 @@ class PerfilScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: profileCardBg,
+        color: cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(

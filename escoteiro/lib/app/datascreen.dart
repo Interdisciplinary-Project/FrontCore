@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -18,6 +19,7 @@ class _DataScreenState extends State<DataScreen> {
   final _bairroController = TextEditingController();
   final _cepController = TextEditingController();
   final _cidadeController = TextEditingController();
+  final _estadoController = TextEditingController();
   final _telefoneController = TextEditingController();
   bool _isEditing = false;
   bool _isSaving = false;
@@ -29,6 +31,7 @@ class _DataScreenState extends State<DataScreen> {
     _bairroController.dispose();
     _cepController.dispose();
     _cidadeController.dispose();
+    _estadoController.dispose();
     _telefoneController.dispose();
     super.dispose();
   }
@@ -38,6 +41,7 @@ class _DataScreenState extends State<DataScreen> {
         _bairroController.text.trim().isEmpty ||
         _cepController.text.trim().isEmpty ||
         _cidadeController.text.trim().isEmpty ||
+        _estadoController.text.trim().isEmpty ||
         _telefoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -60,6 +64,7 @@ class _DataScreenState extends State<DataScreen> {
         'bairro': _bairroController.text.trim(),
         'cep': _cepController.text.trim(),
         'cidade': _cidadeController.text.trim(),
+        'estado': _estadoController.text.trim(),
         'telefone': _telefoneController.text.trim(),
         'ramo': _ramoSelecionado,
       });
@@ -200,6 +205,7 @@ class _DataScreenState extends State<DataScreen> {
             _bairroController.text = userData['bairro'] ?? '';
             _cepController.text = userData['cep'] ?? '';
             _cidadeController.text = userData['cidade'] ?? '';
+            _estadoController.text = userData['estado'] ?? '';
             _telefoneController.text = userData['telefone'] ?? '';
             _ramoSelecionado = userData['ramo'] ?? 'Lobinho';
           }
@@ -228,6 +234,7 @@ class _DataScreenState extends State<DataScreen> {
                       _buildEditableFieldRow('Rua', _enderecoController),
                       _buildEditableFieldRow('Bairro', _bairroController),
                       _buildEditableFieldRow('Cidade', _cidadeController),
+                      _buildEditableFieldRow('Estado', _estadoController),
                       _buildEditableFieldRow('CEP', _cepController),
                     ],
                   ),
@@ -274,6 +281,7 @@ class _DataScreenState extends State<DataScreen> {
                             _bairroController.text = userData['bairro'] ?? '';
                             _cepController.text = userData['cep'] ?? '';
                             _cidadeController.text = userData['cidade'] ?? '';
+                            _estadoController.text = userData['estado'] ?? '';
                             _telefoneController.text = userData['telefone'] ?? '';
                             _ramoSelecionado = userData['ramo'] ?? 'Lobinho';
                           });
@@ -389,6 +397,8 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   Widget _buildEditableFieldRow(String label, TextEditingController controller) {
+    final allowAccents = ['Rua', 'Bairro', 'Cidade', 'Estado'].contains(label);
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -429,6 +439,10 @@ class _DataScreenState extends State<DataScreen> {
           if (_isEditing)
             TextField(
               controller: controller,
+              inputFormatters: _getInputFormatters(label, allowAccents),
+              keyboardType: label == 'Telefone' || label == 'CEP' 
+                  ? TextInputType.number 
+                  : TextInputType.text,
               decoration: InputDecoration(
                 hintText: 'Digite $label',
                 border: OutlineInputBorder(
@@ -507,7 +521,7 @@ class _DataScreenState extends State<DataScreen> {
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
-              items: ['Lobinho', 'Escoteiro', 'Júnior']
+              items: ['Lobinho', 'Júnior', 'Sênior']
                   .map((ramo) => DropdownMenuItem(
                         value: ramo,
                         child: Text(ramo),
@@ -527,6 +541,114 @@ class _DataScreenState extends State<DataScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  List<TextInputFormatter> _getInputFormatters(String label, bool allowAccents) {
+    if (label == 'Telefone') {
+      return [
+        FilteringTextInputFormatter.digitsOnly,
+        _PhoneMaskFormatter(),
+      ];
+    } else if (label == 'CEP') {
+      return [
+        FilteringTextInputFormatter.digitsOnly,
+        _CepMaskFormatter(),
+      ];
+    } else if (allowAccents) {
+      return [];
+    } else {
+      return [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s()+-]'))];
+    }
+  }
+}
+
+class _PhoneMaskFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    if (digitsOnly.length == 1) {
+      return TextEditingValue(
+        text: digitsOnly,
+        selection: TextSelection.collapsed(offset: digitsOnly.length),
+      );
+    }
+
+    final buffer = StringBuffer();
+    
+    buffer.write('(');
+    buffer.write(digitsOnly.substring(0, digitsOnly.length >= 2 ? 2 : digitsOnly.length));
+    if (digitsOnly.length >= 2) {
+      buffer.write(') ');
+    }
+
+    if (digitsOnly.length > 2) {
+      if (digitsOnly.length <= 10) {
+        buffer.write(digitsOnly.substring(2, digitsOnly.length >= 6 ? 6 : digitsOnly.length));
+        if (digitsOnly.length > 6) {
+          buffer.write('-');
+          buffer.write(digitsOnly.substring(6, digitsOnly.length > 10 ? 10 : digitsOnly.length));
+        }
+      } else {
+        buffer.write(digitsOnly.substring(2, digitsOnly.length >= 7 ? 7 : digitsOnly.length));
+        if (digitsOnly.length > 7) {
+          buffer.write('-');
+          buffer.write(digitsOnly.substring(7, digitsOnly.length > 11 ? 11 : digitsOnly.length));
+        }
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+class _CepMaskFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    if (digitsOnly.length <= 5) {
+      return TextEditingValue(
+        text: digitsOnly,
+        selection: TextSelection.collapsed(offset: digitsOnly.length),
+      );
+    }
+
+    final buffer = StringBuffer();
+    
+    buffer.write(digitsOnly.substring(0, 5));
+    buffer.write('-');
+    buffer.write(digitsOnly.substring(5, digitsOnly.length > 8 ? 8 : digitsOnly.length));
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
