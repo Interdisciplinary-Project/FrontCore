@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:escoteiro/app/HomeScreen.dart';
 import 'package:escoteiro/app/activitiesscreen.dart';
 import 'package:escoteiro/app/perfilscreen.dart';
+import 'package:escoteiro/utils/page_transitions.dart';
 
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
@@ -181,17 +182,17 @@ class _GalleryScreenState extends State<GalleryScreen> {
           if (i == 0) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              PageTransitions.fadeSlideTransition(page: const HomeScreen()),
             );
           } else if (i == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ActivitiesScreen()),
+              PageTransitions.fadeSlideTransition(page: const ActivitiesScreen()),
             );
           } else if (i == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PerfilScreen()),
+              PageTransitions.fadeSlideTransition(page: const PerfilScreen()),
             );
           }
         },

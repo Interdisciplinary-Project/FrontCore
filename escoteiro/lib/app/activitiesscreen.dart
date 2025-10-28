@@ -1,29 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:escoteiro/app/galleryscreen.dart';
 import 'package:escoteiro/app/HomeScreen.dart';
 import 'package:escoteiro/app/perfilscreen.dart';
+import 'package:escoteiro/models/activity_model.dart';
+import 'package:escoteiro/services/activity_service.dart';
+import 'package:escoteiro/services/auth_service.dart';
+import 'package:escoteiro/app/manage_activities_screen.dart';
+import 'package:escoteiro/utils/page_transitions.dart';
 
-class ActivitiesScreen extends StatelessWidget {
+class ActivitiesScreen extends StatefulWidget {
   const ActivitiesScreen({super.key});
 
-  Future<void> _participateInActivity(BuildContext context, int points) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  @override
+  State<ActivitiesScreen> createState() => _ActivitiesScreenState();
+}
 
+class _ActivitiesScreenState extends State<ActivitiesScreen> {
+  final ActivityService _activityService = ActivityService();
+  final AuthService _authService = AuthService();
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdmin();
+  }
+
+  Future<void> _checkAdmin() async {
+    final isAdmin = await _authService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+    });
+  }
+
+  Future<void> _participateInActivity(BuildContext context, ActivityModel activity) async {
     try {
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      final snapshot = await userDoc.get();
-      
-      final currentPoints = snapshot.data()?['pontos'] ?? 0;
-      await userDoc.update({'pontos': currentPoints + points});
+      await _activityService.collectActivity(activity.id, activity.pontos, activity.title);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Parabéns! Você ganhou $points pontos!'),
+            content: Text('Parabéns! Você ganhou ${activity.pontos} pontos!'),
             backgroundColor: const Color(0xFF059A00),
             duration: const Duration(seconds: 2),
           ),
@@ -32,8 +50,10 @@ class ActivitiesScreen extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erro ao adicionar pontos. Tente novamente.'),
+          SnackBar(
+            content: Text(e.toString().contains('já coletada') 
+                ? 'Você já coletou esta atividade!' 
+                : 'Erro ao coletar atividade. Tente novamente.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -72,66 +92,92 @@ class ActivitiesScreen extends StatelessWidget {
   }
 
   Widget _buildActivitiesSection(BuildContext context) {
-    final activities = [
-      {
-        'title': 'Acampamento de Outono',
-        'description': 'Três dias de aventura, trilhas e culinária ao ar livre no Parque Estadual. Prepare sua barraca!',
-        'date': '25 - 27 de Outubro',
-        'icon': Icons.terrain, 
-        'color': const Color(0xFF059A00),
-        'pontos': 50, // Points for this activity
-      },
-      {
-        'title': 'Oficina de Primeiros Socorros',
-        'description': 'Treinamento essencial para todas as patrulhas. Foco em bandagens e RCP.',
-        'date': '02 de Novembro',
-        'icon': Icons.medical_services_outlined,
-        'color': const Color(0xFF1E88E5),
-        'pontos': 30, // Points for this activity
-      },
-      {
-        'title': 'Mutirão de Limpeza',
-        'description': 'Ajudando a comunidade local a limpar a área da Praça Central. Traga luvas e protetor solar!',
-        'date': '16 de Novembro',
-        'icon': Icons.local_florist_outlined,
-        'color': const Color(0xFFFFB300),
-        'pontos': 25, // Points for this activity
-      },
-      {
-        'title': 'Reunião de Pais e Chefes',
-        'description': 'Discussão sobre o planejamento anual e novas regras de segurança. Presença obrigatória.',
-        'date': '30 de Novembro',
-        'icon': Icons.people_outline,
-        'color': const Color(0xFFD32F2F),
-        'pontos': 15, // Points for this activity
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Próximas Atividades',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF000000),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Próximas Atividades',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF000000),
+              ),
+            ),
+            if (_isAdmin)
+              IconButton(
+                icon: const Icon(Icons.settings, color: Color(0xFF059A00)),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ManageActivitiesScreen(),
+                    ),
+                  );
+                },
+              ),
+          ],
         ),
         const SizedBox(height: 12),
-        ...activities.map(
-          (activity) => Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: _buildActivityCard(
-              context: context,
-              title: activity['title'] as String,
-              description: activity['description'] as String,
-              date: activity['date'] as String,
-              icon: activity['icon'] as IconData,
-              color: activity['color'] as Color,
-              pontos: activity['pontos'] as int, // Pass points to card
-            ),
-          ),
+        StreamBuilder<List<ActivityModel>>(
+          stream: _activityService.getAvailableActivities(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Erro: ${snapshot.error}'),
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF059A00),
+                ),
+              );
+            }
+
+            final activities = snapshot.data!;
+
+            if (activities.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nenhuma atividade disponível no momento',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: activities.map((activity) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: _buildActivityCard(
+                    context: context,
+                    activity: activity,
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );
@@ -139,13 +185,13 @@ class ActivitiesScreen extends StatelessWidget {
 
   Widget _buildActivityCard({
     required BuildContext context,
-    required String title,
-    required String description,
-    required String date,
-    required IconData icon,
-    required Color color,
-    required int pontos, // Added pontos parameter
+    required ActivityModel activity,
   }) {
+    final color = Color(
+      int.parse(activity.colorHex.replaceFirst('#', '0xFF')),
+    );
+    final icon = _getIconData(activity.iconName);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -177,7 +223,7 @@ class ActivitiesScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      activity.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -186,7 +232,7 @@ class ActivitiesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      description,
+                      activity.description,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF000000),
@@ -199,7 +245,7 @@ class ActivitiesScreen extends StatelessWidget {
                         const Icon(Icons.access_time, size: 14, color: Color(0xFFAFAFAF)),
                         const SizedBox(width: 4),
                         Text(
-                          date,
+                          activity.date,
                           style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xFFAFAFAF),
@@ -217,7 +263,7 @@ class ActivitiesScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => _participateInActivity(context, pontos),
+              onPressed: () => _participateInActivity(context, activity),
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 foregroundColor: Colors.white,
@@ -227,7 +273,7 @@ class ActivitiesScreen extends StatelessWidget {
                 ),
               ),
               child: Text(
-                'Participar (+$pontos pontos)',
+                'Participar (+${activity.pontos} pontos)',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -238,6 +284,27 @@ class ActivitiesScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData _getIconData(String iconName) {
+    switch (iconName) {
+      case 'terrain':
+        return Icons.terrain;
+      case 'medical_services':
+        return Icons.medical_services_outlined;
+      case 'local_florist':
+        return Icons.local_florist_outlined;
+      case 'people':
+        return Icons.people_outline;
+      case 'sports':
+        return Icons.sports;
+      case 'school':
+        return Icons.school;
+      case 'volunteer_activism':
+        return Icons.volunteer_activism;
+      default:
+        return Icons.event;
+    }
   }
 
   Widget _buildBottomNavigation(BuildContext context) {
@@ -259,22 +326,22 @@ class ActivitiesScreen extends StatelessWidget {
         unselectedItemColor: const Color(0xFFAFAFAF),
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        currentIndex: 2, 
+        currentIndex: 2,
         onTap: (i) {
           if (i == 0) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              PageTransitions.fadeSlideTransition(page: const HomeScreen()),
             );
           } else if (i == 1) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const GalleryScreen()),
+              PageTransitions.fadeSlideTransition(page: const GalleryScreen()),
             );
           } else if (i == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PerfilScreen()),
+              PageTransitions.fadeSlideTransition(page: const PerfilScreen()),
             );
           }
         },

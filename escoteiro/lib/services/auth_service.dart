@@ -28,4 +28,30 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  Future<void> updateUserPoints(String userId, int points) async {
+    await _firestore.collection('users').doc(userId).update({
+      'pontos': FieldValue.increment(points),
+    });
+  }
+
+  Future<UserModel?> getUserData(String userId) async {
+    final doc = await _firestore.collection('users').doc(userId).get();
+    if (!doc.exists) return null;
+    return UserModel.fromFirestore(doc.data()!, userId);
+  }
+
+  Stream<UserModel?> streamCurrentUserData() {
+    final user = currentUser;
+    if (user == null) return Stream.value(null);
+
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) return null;
+      return UserModel.fromFirestore(doc.data()!, user.uid);
+    });
+  }
 }

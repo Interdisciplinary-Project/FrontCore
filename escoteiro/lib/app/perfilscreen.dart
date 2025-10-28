@@ -8,6 +8,7 @@ import 'package:escoteiro/app/activitiesscreen.dart';
 import 'package:escoteiro/app/loginscreen.dart';
 import 'package:escoteiro/app/datascreen.dart';
 import 'package:escoteiro/app/settingsscreen.dart';
+import 'package:escoteiro/utils/page_transitions.dart';
 
 class PerfilScreen extends StatelessWidget {
   const PerfilScreen({super.key});
@@ -15,9 +16,9 @@ class PerfilScreen extends StatelessWidget {
   static const Color primaryGreen = Color(0xFF059A00);
   static const Color lightBackground = Color(0xFFE2F0E1);
   static const Color cardColor = Color(0xFFFAFAFA);
-  static const Color profileCardBg = Color(0xFFEAF5E9); 
-  static const Color nextActivityBg = Color(0xFFE6F3FF);
-  static const Color nextActivityColor = Color(0xFF007AFF);
+  static const Color profileCardBg = Color(0xFFEAF5E9);
+  static const Color statsCardBg = Color(0xFFE8F5E9);
+  static const Color statsColor = Color(0xFF00A651);
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +124,7 @@ class PerfilScreen extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 24),
-                    _buildNextActivityCard(),
+                    _buildStatsCard(user?.uid),
                     const SizedBox(height: 24),
                     _buildLogOutButton(context),
                     const SizedBox(height: 80),
@@ -361,16 +362,64 @@ class PerfilScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNextActivityCard() {
+  Widget _buildStatsCard(String? userId) {
+    if (userId == null) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('user_activities')
+          .where('userId', isEqualTo: userId)
+          .snapshots(),
+      builder: (context, activitySnapshot) {
+        final completedActivities = activitySnapshot.hasData 
+            ? activitySnapshot.data!.docs.length 
+            : 0;
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .orderBy('pontos', descending: true)
+              .snapshots(),
+          builder: (context, usersSnapshot) {
+            int ranking = 0;
+            if (usersSnapshot.hasData) {
+              final users = usersSnapshot.data!.docs;
+              ranking = users.indexWhere((doc) => doc.id == userId) + 1;
+            }
+
+            String lastActivity = 'Nenhuma';
+            if (activitySnapshot.hasData && activitySnapshot.data!.docs.isNotEmpty) {
+              final docs = activitySnapshot.data!.docs;
+              docs.sort((a, b) {
+                final aTime = (a.data() as Map<String, dynamic>)['collectedAt'] as Timestamp?;
+                final bTime = (b.data() as Map<String, dynamic>)['collectedAt'] as Timestamp?;
+                if (aTime == null || bTime == null) return 0;
+                return bTime.compareTo(aTime);
+              });
+              
+              final lastDoc = docs.first.data() as Map<String, dynamic>;
+              lastActivity = lastDoc['activityTitle'] ?? 'Desconhecida';
+            }
+
+            return _buildStatsCardContent(completedActivities, ranking, lastActivity);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatsCardContent(int completedActivities, int ranking, String lastActivity) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: nextActivityBg, 
+        color: statsCardBg,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: nextActivityColor.withOpacity(0.1),
+            color: statsColor.withOpacity(0.1),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -379,48 +428,102 @@ class PerfilScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Próxima Atividade',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: nextActivityColor, 
-            ),
+          Row(
+            children: const [
+              Icon(
+                Icons.bar_chart,
+                color: statsColor,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Minhas Estatísticas',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: statsColor,
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem(
+                icon: Icons.check_circle,
+                value: completedActivities.toString(),
+                label: 'Atividades',
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: statsColor.withOpacity(0.2),
+              ),
+              _buildStatItem(
+                icon: Icons.emoji_events,
+                value: ranking > 0 ? '$rankingº' : '-',
+                label: 'Ranking',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFFE0E0E0)),
           const SizedBox(height: 8),
           Row(
             children: [
               const Icon(
-                Icons.rocket_launch, 
-                color: nextActivityColor,
-                size: 24,
+                Icons.history,
+                color: statsColor,
+                size: 16,
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Escola Patrulheira',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF000000),
-                    ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Última: $lastActivity',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF757575),
                   ),
-                  SizedBox(height: 2),
-                  Text(
-                    '25 de outubro de 2025',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF757575),
-                    ),
-                  ),
-                ],
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: statsColor,
+          size: 24,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF000000),
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF757575),
+          ),
+        ),
+      ],
     );
   }
 
@@ -479,15 +582,15 @@ class PerfilScreen extends StatelessWidget {
         onTap: (i) {
           if (i == 0) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
+              PageTransitions.fadeSlideTransition(page: const HomeScreen()),
             );
           } else if (i == 1) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const GalleryScreen()),
+              PageTransitions.fadeSlideTransition(page: const GalleryScreen()),
             );
           } else if (i == 2) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const ActivitiesScreen()),
+              PageTransitions.fadeSlideTransition(page: const ActivitiesScreen()),
             );
           }
         },

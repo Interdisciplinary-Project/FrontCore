@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:escoteiro/models/notice_model.dart';
 import 'package:escoteiro/services/auth_service.dart';
 import 'package:escoteiro/app/add_notice_screen.dart';
+import 'package:escoteiro/utils/page_transitions.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -19,38 +20,55 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFE2F0E1),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      _buildHeader(),
-                      const SizedBox(height: 16),
-                      _buildHistorySection(),
-                      const SizedBox(height: 16),
-                      _buildCommunityEventsCards(context),
-                      const SizedBox(height: 16),
-                      _buildRecentNotices(context),
-                      const SizedBox(height: 16),
-                      _buildContactButton(),
-                      const SizedBox(height: 80),
-                    ],
-                  ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          _buildHeader(),
+                        ],
+                      ),
+                    ),
+                    const _ImageCarouselSection(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          _buildCommunityEventsCards(context),
+                          const SizedBox(height: 16),
+                          _buildRecentNotices(context),
+                          const SizedBox(height: 16),
+                          _buildGroupStats(),
+                          const SizedBox(height: 16),
+                          _buildTopMembersRanking(),
+                          const SizedBox(height: 16),
+                          _buildHighlightsSection(),
+                          const SizedBox(height: 16),
+                          _buildContactButton(),
+                          const SizedBox(height: 80),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: _buildBottomNavigation(context),
     );
   }
-
 
   Widget _buildHeader() {
     return Container(
@@ -79,54 +97,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHistorySection() {
-    const historiaTexto =
-        'No Movimento Escoteiro, cada atividade é uma oportunidade de aprendizado e crescimento. '
-        'Desde aventuras ao ar livre até projetos que estimulam a criatividade, os jovens desenvolvem '
-        'habilidades importantes enquanto fortalecem valores como trabalho em equipe, respeito e liderança. '
-        'Participar desse movimento significa não apenas explorar novos horizontes, mas também construir memórias '
-        'inesquecíveis que durarão para sempre, criando laços que atravessam gerações e mantendo o espírito do escotismo.';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(0, 16, 0, 0),
-          child: Text(
-            'Nossa história',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF000000),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 180,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: Image.asset(
-              'assets/images/imagem-44.jpg',
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          historiaTexto,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF000000),
-            height: 1.6,
-          ),
-          textAlign: TextAlign.left,
-        ),
-      ],
     );
   }
 
@@ -216,7 +186,7 @@ class HomeScreen extends StatelessWidget {
                             Navigator.of(ctx).pop();
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const CommunityScreen()),
+                              MaterialPageRoute(builder: (context) => const CommunityScreen()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -284,7 +254,7 @@ class HomeScreen extends StatelessWidget {
                             Navigator.of(ctx).pop();
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const EventsScreen()),
+                              MaterialPageRoute(builder: (context) => const EventsScreen()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -318,7 +288,7 @@ class HomeScreen extends StatelessWidget {
             const Text(
               'Avisos recentes',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF000000),
               ),
@@ -332,7 +302,7 @@ class HomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const AddNoticeScreen()),
+                        MaterialPageRoute(builder: (context) => const AddNoticeScreen()),
                       );
                     },
                   );
@@ -443,6 +413,349 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildGroupStats() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Estatísticas do Grupo',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF000000),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('users').snapshots(),
+                builder: (context, snapshot) {
+                  final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                  return _buildStatCard(
+                    icon: Icons.people,
+                    value: count.toString(),
+                    label: 'Membros',
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('activities').snapshots(),
+                builder: (context, snapshot) {
+                  final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                  return _buildStatCard(
+                    icon: Icons.check_circle,
+                    value: count.toString(),
+                    label: 'Atividades',
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('events').snapshots(),
+                builder: (context, snapshot) {
+                  final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                  return _buildStatCard(
+                    icon: Icons.event,
+                    value: count.toString(),
+                    label: 'Eventos',
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF059A00),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: const Color(0xFF059A00), size: 28),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF000000),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF666666),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopMembersRanking() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ranking de Membros',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF000000),
+          ),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .orderBy('pontos', descending: true)
+              .limit(3)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Text(
+                'Erro ao carregar ranking',
+                style: TextStyle(color: Color(0xFFAFAFAF)),
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF059A00)),
+              );
+            }
+
+            final users = snapshot.data!.docs;
+
+            if (users.isEmpty) {
+              return const Text(
+                'Nenhum membro encontrado',
+                style: TextStyle(color: Color(0xFFAFAFAF)),
+              );
+            }
+
+            return Column(
+              children: users.asMap().entries.map((entry) {
+                final index = entry.key;
+                final doc = entry.value;
+                final data = doc.data() as Map<String, dynamic>;
+                final name = data['nome'] ?? 'Sem nome';
+                final points = data['pontos'] ?? 0;
+                
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: _buildRankingCard(
+                    position: index + 1,
+                    name: name,
+                    points: points,
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRankingCard({
+    required int position,
+    required String name,
+    required int points,
+  }) {
+    Color medalColor;
+    IconData medalIcon;
+    
+    switch (position) {
+      case 1:
+        medalColor = const Color(0xFFFFD700);
+        medalIcon = Icons.emoji_events;
+        break;
+      case 2:
+        medalColor = const Color(0xFFC0C0C0);
+        medalIcon = Icons.emoji_events;
+        break;
+      case 3:
+        medalColor = const Color(0xFFCD7F32);
+        medalIcon = Icons.emoji_events;
+        break;
+      default:
+        medalColor = const Color(0xFF059A00);
+        medalIcon = Icons.emoji_events;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF059A00),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(medalIcon, color: medalColor, size: 32),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF000000),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$points pontos',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF666666),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$positionº',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF059A00),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Destaques',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF000000),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildHighlightCard(
+          icon: Icons.emoji_events,
+          title: 'Conquiste Pontos',
+          description: 'Complete atividades e suba no ranking do grupo!',
+          color: const Color(0xFF059A00),
+        ),
+        const SizedBox(height: 12),
+        _buildHighlightCard(
+          icon: Icons.groups,
+          title: 'Participe da Comunidade',
+          description: 'Conecte-se com outros membros e compartilhe experiências.',
+          color: const Color(0xFF0277BD),
+        ),
+        const SizedBox(height: 12),
+        _buildHighlightCard(
+          icon: Icons.photo_library,
+          title: 'Galeria de Momentos',
+          description: 'Reviva os melhores momentos do grupo na galeria.',
+          color: const Color(0xFFE65100),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHighlightCard({
+    required IconData icon,
+    required String title,
+    required String description,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color,
+          width: 2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF666666),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openWhatsApp() async {
     final Uri whatsappUrl = Uri.parse(
       'https://api.whatsapp.com/send?phone=%2B5516991385661&data=ARAS4x0OdBvanOLmwpq6EgbrzRhqqGzQavOL0LJAHmqkGe4Y2HW0jerhFAI69cjU1AcYYdUi0gxhIzbT5elFJEe3IhkcmeFv5R4fAOUk5e-n-0iwKVs9sD4NlsChPH1pDzwSUw9qrzFJcJD66C-DsmzQ-w&source=FB_Page&app=facebook&entry_point=page_cta&fbclid=IwAR1JWOTuaIobAOSxqwj705nb6VK2li9ahZ0RdW1hkecmsJSTrF7yTIwmgdA'
@@ -506,17 +819,17 @@ class HomeScreen extends StatelessWidget {
           if (i == 1) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const GalleryScreen()),
+              PageTransitions.fadeSlideTransition(page: const GalleryScreen()),
             );
           } else if (i == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ActivitiesScreen()),
+              PageTransitions.fadeSlideTransition(page: const ActivitiesScreen()),
             );
           } else if (i == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PerfilScreen()),
+              PageTransitions.fadeSlideTransition(page: const PerfilScreen()),
             );
           }
         },
@@ -612,6 +925,277 @@ class _AnimatedInfoCardState extends State<_AnimatedInfoCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ImageCarouselSection extends StatefulWidget {
+  const _ImageCarouselSection();
+
+  @override
+  State<_ImageCarouselSection> createState() => _ImageCarouselSectionState();
+}
+
+class _CarouselItem {
+  final String imagePath;
+  final String description;
+
+  const _CarouselItem({
+    required this.imagePath,
+    required this.description,
+  });
+}
+
+class _ImageCarouselSectionState extends State<_ImageCarouselSection> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  
+  final List<_CarouselItem> _carouselItems = [
+    const _CarouselItem(
+      imagePath: 'assets/images/imagem-1.jpg',
+      description: 'Atividades ao ar livre e aprendizado prático',
+    ),
+    const _CarouselItem(
+      imagePath: 'assets/images/imagem-2.jpg',
+      description: 'Desenvolvendo habilidades e valores escoteiros',
+    ),
+    const _CarouselItem(
+      imagePath: 'assets/images/imagem-3.jpg',
+      description: 'Construindo amizades e memórias inesquecíveis',
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage < _carouselItems.length - 1) {
+      _pageController.animateToPage(
+        _currentPage + 1,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.animateToPage(
+        _currentPage - 1,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Text(
+            'Nossa história',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF000000),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 220,
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemCount: _carouselItems.length,
+                itemBuilder: (context, index) {
+                  return AnimatedBuilder(
+                    animation: _pageController,
+                    builder: (context, child) {
+                      double value = 1.0;
+                      if (_pageController.position.haveDimensions) {
+                        value = _pageController.page! - index;
+                        value = (1 - (value.abs() * 0.3)).clamp(0.7, 1.0);
+                      }
+                      return Center(
+                        child: SizedBox(
+                          height: Curves.easeInOut.transform(value) * 220,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.asset(
+                          _carouselItems[index].imagePath,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.8),
+                                  Colors.black.withOpacity(0.6),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            child: Text(
+                              _carouselItems[index].description,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (_currentPage > 0)
+              Positioned(
+                left: 8,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _previousPage,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF059A00).withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (_currentPage < _carouselItems.length - 1)
+              Positioned(
+                right: 8,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _nextPage,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF059A00).withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _carouselItems.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: _currentPage == index ? 24 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _currentPage == index
+                    ? const Color(0xFF059A00)
+                    : const Color(0xFF059A00).withOpacity(0.3),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFF059A00),
+                width: 1.5,
+              ),
+            ),
+            child: const Text(
+              'O Grupo Escoteiro Terra na Saudade (GETS) é uma comunidade dedicada ao desenvolvimento de jovens através dos valores escoteiros. Fundado com o propósito de formar cidadãos conscientes e preparados para os desafios da vida, promovemos atividades ao ar livre, trabalho em equipe e aprendizado prático. Nossa missão é cultivar liderança, responsabilidade e respeito pela natureza, criando experiências inesquecíveis que transformam vidas.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF333333),
+                height: 1.6,
+              ),
+              textAlign: TextAlign.justify,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
