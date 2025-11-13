@@ -20,6 +20,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   final ActivityService _activityService = ActivityService();
   final AuthService _authService = AuthService();
   bool _isAdmin = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -35,6 +36,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   }
 
   Future<void> _participateInActivity(BuildContext context, ActivityModel activity) async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       await _activityService.collectActivity(activity.id, activity.pontos, activity.title);
 
@@ -47,7 +52,21 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
           ),
         );
       }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -130,7 +149,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
               );
             }
 
-            if (!snapshot.hasData) {
+            if (!snapshot.hasData || _isLoading) {
               return const Center(
                 child: CircularProgressIndicator(
                   color: Color(0xFF059A00),
@@ -263,7 +282,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => _participateInActivity(context, activity),
+              onPressed: _isLoading ? null : () => _participateInActivity(context, activity),
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 foregroundColor: Colors.white,
@@ -271,9 +290,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
+                disabledBackgroundColor: color.withOpacity(0.5),
               ),
               child: Text(
-                'Participar (+${activity.pontos} pontos)',
+                'Resgatar (+${activity.pontos} pontos)',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:escoteiro/models/discussion_model.dart';
+import 'package:escoteiro/models/reply_model.dart';
 import 'package:escoteiro/services/auth_service.dart';
 
 class DiscussionDetail extends StatefulWidget {
@@ -96,9 +97,10 @@ class _DiscussionDetailState extends State<DiscussionDetail> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -153,9 +155,6 @@ class _DiscussionDetailState extends State<DiscussionDetail> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
-                        print('=== STREAM ERROR ===');
-                        print('Error loading replies: ${snapshot.error}');
-                        print('Error type: ${snapshot.error.runtimeType}');
                         return const Text('Erro ao carregar respostas');
                       }
 
@@ -164,8 +163,6 @@ class _DiscussionDetailState extends State<DiscussionDetail> {
                       }
 
                       final replies = snapshot.data!.docs;
-                      
-                      print('Loaded ${replies.length} replies for discussion ${widget.discussion.id}');
 
                       if (replies.isEmpty) {
                         return const Text(
@@ -174,9 +171,21 @@ class _DiscussionDetailState extends State<DiscussionDetail> {
                         );
                       }
 
+                      final sortedReplies = List.from(replies);
+                      sortedReplies.sort((a, b) {
+                        final aData = a.data() as Map<String, dynamic>;
+                        final bData = b.data() as Map<String, dynamic>;
+                        final aTime = (aData['createdAt'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                        final bTime = (bData['createdAt'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                        return aTime.compareTo(bTime);
+                      });
+
                       return Column(
-                        children: replies.map((doc) {
-                          final reply = ReplyModel.fromFirestore(doc);
+                        children: sortedReplies.map((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final authorName = data['authorName'] ?? 'Anônimo';
+                          final content = data['content'] ?? '';
+                          
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: Container(
@@ -189,7 +198,7 @@ class _DiscussionDetailState extends State<DiscussionDetail> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    reply.authorName,
+                                    authorName,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -198,7 +207,7 @@ class _DiscussionDetailState extends State<DiscussionDetail> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    reply.content,
+                                    content,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Color(0xFF000000),

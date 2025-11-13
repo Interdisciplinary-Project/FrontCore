@@ -8,6 +8,7 @@ import 'package:escoteiro/app/activitiesscreen.dart';
 import 'package:escoteiro/app/loginscreen.dart';
 import 'package:escoteiro/app/datascreen.dart';
 import 'package:escoteiro/app/settingsscreen.dart';
+import 'package:escoteiro/app/users_list_screen.dart';
 import 'package:escoteiro/utils/page_transitions.dart';
 
 class PerfilScreen extends StatelessWidget {
@@ -96,6 +97,8 @@ class PerfilScreen extends StatelessWidget {
                             ? snapshot.data!.data() as Map<String, dynamic>
                             : <String, dynamic>{};
                         
+                        final isAdmin = userData['role'] == 'admin';
+                        
                         return Column(
                           children: [
                             _buildSettingsItem(
@@ -119,6 +122,21 @@ class PerfilScreen extends StatelessWidget {
                                 );
                               },
                             ),
+                            if (isAdmin) ...[
+                              const SizedBox(height: 12),
+                              _buildSettingsItem(
+                                icon: Icons.people_outline,
+                                title: 'Usuários',
+                                subtitle: 'Ver todos os membros cadastrados',
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => const UsersListScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ],
                         );
                       },

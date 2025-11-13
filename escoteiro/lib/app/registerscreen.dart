@@ -33,6 +33,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _dataNascimentoController = TextEditingController();
   final _dataIngressaoController = TextEditingController();
   
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _confirmPasswordFocusNode = FocusNode();
+  final _nomeFocusNode = FocusNode();
+  final _sobrenomeFocusNode = FocusNode();
+  final _telefoneFocusNode = FocusNode();
+  final _enderecoFocusNode = FocusNode();
+  final _bairroFocusNode = FocusNode();
+  final _cidadeFocusNode = FocusNode();
+  final _estadoFocusNode = FocusNode();
+  final _cepFocusNode = FocusNode();
+  final _dataNascimentoFocusNode = FocusNode();
+  final _dataIngressaoFocusNode = FocusNode();
+  
   final _phoneMaskFormatter = MaskTextInputFormatter(
     mask: '(##) #####-####',
     filter: {"#": RegExp(r'[0-9]')},
@@ -40,6 +54,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   
   final _cepMaskFormatter = MaskTextInputFormatter(
     mask: '#####-###',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+  
+  final _dateMaskFormatter = MaskTextInputFormatter(
+    mask: '##/##/####',
     filter: {"#": RegExp(r'[0-9]')},
   );
   
@@ -65,6 +84,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _estadoController.dispose();
     _dataNascimentoController.dispose();
     _dataIngressaoController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
+    _nomeFocusNode.dispose();
+    _sobrenomeFocusNode.dispose();
+    _telefoneFocusNode.dispose();
+    _enderecoFocusNode.dispose();
+    _bairroFocusNode.dispose();
+    _cidadeFocusNode.dispose();
+    _estadoFocusNode.dispose();
+    _cepFocusNode.dispose();
+    _dataNascimentoFocusNode.dispose();
+    _dataIngressaoFocusNode.dispose();
     super.dispose();
   }
 
@@ -104,6 +136,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.isEmpty) {
       return '$fieldName é obrigatório';
+    }
+    return null;
+  }
+  
+  String? _validateDate(String? value, String fieldName) {
+    if (value == null || value.isEmpty) {
+      return '$fieldName é obrigatório';
+    }
+    if (value.length != 10) {
+      return 'Data inválida';
+    }
+    final parts = value.split('/');
+    if (parts.length != 3) {
+      return 'Data inválida';
+    }
+    final day = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) {
+      return 'Data inválida';
+    }
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
+      return 'Data inválida';
     }
     return null;
   }
@@ -260,24 +315,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               children: [
                 Container(
-                  color: const Color(0xFF00A000),
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                   child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      const Spacer(),
-                      Text(
-                        'Passo ${_currentPage + 1} de 3',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00A000).withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
-                      const Spacer(),
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(3, (index) {
+                            final isActive = index == _currentPage;
+                            final isCompleted = index < _currentPage;
+                            
+                            return Row(
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  width: isActive ? 32 : 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: isActive || isCompleted
+                                        ? const Color(0xFF00A000)
+                                        : Colors.white.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                                if (index < 2)
+                                  Container(
+                                    width: 24,
+                                    height: 2,
+                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    color: isCompleted
+                                        ? const Color(0xFF00A000)
+                                        : Colors.white.withOpacity(0.3),
+                                  ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
                       const SizedBox(width: 48),
                     ],
                   ),
@@ -415,6 +499,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _emailController,
             validator: _validateEmail,
             keyboardType: TextInputType.emailAddress,
+            focusNode: _emailFocusNode,
+            nextFocusNode: _passwordFocusNode,
             suffixIcon: _emailController.text.isNotEmpty
                 ? Icon(
                     _emailValid ? Icons.check_circle : Icons.cancel,
@@ -428,6 +514,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _passwordController,
             validator: _validatePassword,
             obscureText: _obscurePassword,
+            focusNode: _passwordFocusNode,
+            nextFocusNode: _confirmPasswordFocusNode,
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -444,6 +532,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _confirmPasswordController,
             validator: _validateConfirmPassword,
             obscureText: _obscureConfirmPassword,
+            focusNode: _confirmPasswordFocusNode,
+            textInputAction: TextInputAction.done,
             suffixIcon: IconButton(
               icon: Icon(
                 _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
@@ -471,6 +561,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _nomeController,
               validator: (v) => _validateRequired(v, 'Nome'),
               allowAccents: true,
+              focusNode: _nomeFocusNode,
+              nextFocusNode: _sobrenomeFocusNode,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -478,6 +570,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _sobrenomeController,
               validator: (v) => _validateRequired(v, 'Sobrenome'),
               allowAccents: true,
+              focusNode: _sobrenomeFocusNode,
+              nextFocusNode: _telefoneFocusNode,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -486,6 +580,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: (v) => _validateRequired(v, 'Telefone'),
               keyboardType: TextInputType.phone,
               inputFormatters: [_phoneMaskFormatter],
+              focusNode: _telefoneFocusNode,
+              nextFocusNode: _enderecoFocusNode,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -493,6 +589,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _enderecoController,
               validator: (v) => _validateRequired(v, 'Rua'),
               allowAccents: true,
+              focusNode: _enderecoFocusNode,
+              nextFocusNode: _bairroFocusNode,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -500,6 +598,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _bairroController,
               validator: (v) => _validateRequired(v, 'Bairro'),
               allowAccents: true,
+              focusNode: _bairroFocusNode,
+              nextFocusNode: _cidadeFocusNode,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -507,6 +607,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _cidadeController,
               validator: (v) => _validateRequired(v, 'Cidade'),
               allowAccents: true,
+              focusNode: _cidadeFocusNode,
+              nextFocusNode: _estadoFocusNode,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -514,6 +616,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _estadoController,
               validator: (v) => _validateRequired(v, 'Estado'),
               allowAccents: true,
+              focusNode: _estadoFocusNode,
+              nextFocusNode: _cepFocusNode,
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -522,6 +626,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: (v) => _validateRequired(v, 'CEP'),
               keyboardType: TextInputType.number,
               inputFormatters: [_cepMaskFormatter],
+              focusNode: _cepFocusNode,
+              textInputAction: TextInputAction.done,
             ),
           ],
         ),
@@ -538,11 +644,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _buildDateField(
             label: 'Data de Nascimento',
             controller: _dataNascimentoController,
+            focusNode: _dataNascimentoFocusNode,
+            nextFocusNode: _dataIngressaoFocusNode,
           ),
           const SizedBox(height: 16),
           _buildDateField(
             label: 'Data de Ingressão',
             controller: _dataIngressaoController,
+            focusNode: _dataIngressaoFocusNode,
+            textInputAction: TextInputAction.done,
           ),
           const SizedBox(height: 16),
           Column(
@@ -590,6 +700,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     Widget? suffixIcon,
     List<TextInputFormatter>? inputFormatters,
     bool allowAccents = false,
+    FocusNode? focusNode,
+    FocusNode? nextFocusNode,
+    TextInputAction? textInputAction,
   }) {
     List<TextInputFormatter> formatters = inputFormatters ?? [];
     if (!allowAccents && 
@@ -616,6 +729,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           keyboardType: keyboardType,
           obscureText: obscureText,
           inputFormatters: formatters,
+          focusNode: focusNode,
+          textInputAction: textInputAction ?? (nextFocusNode != null ? TextInputAction.next : TextInputAction.done),
+          onFieldSubmitted: (_) {
+            if (nextFocusNode != null) {
+              FocusScope.of(context).requestFocus(nextFocusNode);
+            }
+          },
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -635,6 +755,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildDateField({
     required String label,
     required TextEditingController controller,
+    FocusNode? focusNode,
+    FocusNode? nextFocusNode,
+    TextInputAction? textInputAction,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -649,15 +772,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
-          readOnly: true,
-          validator: (v) => _validateRequired(v, label),
-          onTap: () => _selectDate(context, controller),
+          validator: (v) => _validateDate(v, label),
+          keyboardType: TextInputType.number,
+          inputFormatters: [_dateMaskFormatter],
+          focusNode: focusNode,
+          textInputAction: textInputAction ?? (nextFocusNode != null ? TextInputAction.next : TextInputAction.done),
+          onFieldSubmitted: (_) {
+            if (nextFocusNode != null) {
+              FocusScope.of(context).requestFocus(nextFocusNode);
+            }
+          },
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            suffixIcon: const Icon(Icons.calendar_today, color: Color(0xFF00A000)),
+            hintText: 'DD/MM/AAAA',
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.calendar_today, color: Color(0xFF00A000)),
+              onPressed: () => _selectDate(context, controller),
+            ),
           ),
         ),
       ],
